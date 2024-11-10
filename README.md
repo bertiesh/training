@@ -1,3 +1,12 @@
+# Configuration
+1. mysql
+2. redis
+3. rabbitmq
+4. elasticsearch(optional)
+5. hdfs(optional)
+
+# Fuctionalities
+
 ## Email and User
 1. email verification code 
 2. use google.code.kaptcha to generate image verification codes and add noise
