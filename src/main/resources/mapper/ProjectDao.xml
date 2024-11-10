@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.training.dao.ProjectDao">
+
+
+    <select id="listProjectBacks" resultType="com.example.training.dto.ProjectBackDTO">
+        SELECT
+        id,
+        name,
+        description,
+        cover,
+        questions,
+        cascades,
+        status,
+        is_delete,
+        is_active,
+        is_random,
+        question_number,
+        progress_bar,
+        password,
+        is_password,
+        answer_sheet_visible,
+        auto_save,
+        enable_update,
+        copy_enabled,
+        tag_ids,
+        answer_analysis,
+        types,
+        question_num,
+        start_time,
+        end_time
+        FROM
+        tb_project
+        <where>
+                is_delete = 0
+            <if test="condition.keywords != null">
+                and name like concat('%',#{condition.keywords},'%')
+            </if>
+            <if test="condition.status != null">
+                and status = #{condition.status}
+            </if>
+        </where>
+        ORDER BY
+        id DESC
+        LIMIT #{current},#{size}
+    </select>
+
+</mapper>

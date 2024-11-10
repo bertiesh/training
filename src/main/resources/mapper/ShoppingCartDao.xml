@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.training.dao.ShoppingCartDao">
+    <resultMap id="shoppingCartBackResultMap" type="com.example.training.dto.ShoppingCartBackDTO">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="nickname" property="nickname"/>
+        <result column="spu_id" property="spuId"/>
+        <result column="spu_name" property="spuName"/>
+        <result column="num" property="num"/>
+        <result column="sub_points" property="subPoints"/>
+        <result column="is_delete" property="isDelete"/>
+        <result column="add_points" property="addPoints"/>
+        <result column="is_on" property="isOn"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <collection property="shoppingCartSKUDTO" ofType="com.example.training.dto.ShoppingCartSKUDTO">
+            <id column="sku_id" property="id"/>
+            <result column="sku_name" property="name"/>
+            <result column="picture" property="picture"/>
+            <result column="points" property="points"/>
+            <result column="stock" property="stock"/>
+        </collection>
+    </resultMap>
+
+    <resultMap id="shoppingCartResultMap" type="com.example.training.dto.ShoppingCartDTO">
+        <id column="id" property="id"/>
+        <result column="spu_id" property="spuId"/>
+        <result column="spu_name" property="spuName"/>
+        <result column="num" property="num"/>
+        <result column="sub_points" property="subPoints"/>
+        <result column="is_delete" property="isDelete"/>
+        <result column="is_on" property="isOn"/>
+        <collection property="shoppingCartSKUDTO" ofType="com.example.training.dto.ShoppingCartSKUDTO">
+            <id column="sku_id" property="id"/>
+            <result column="sku_name" property="name"/>
+            <result column="picture" property="picture"/>
+            <result column="points" property="points"/>
+            <result column="stock" property="stock"/>
+        </collection>
+    </resultMap>
+
+    <select id="listShoppingCartBacks" resultMap="shoppingCartBackResultMap">
+        SELECT
+        tsc.id,
+        tsc.user_id,
+        tui.nickname,
+        p.spu_id,
+        p.spu_name,
+        p.is_on,
+        p.is_delete + k.is_delete AS is_delete,
+        num,
+        sku_id,
+        stock,
+        k.name AS sku_name,
+        k.picture,
+        k.points,
+        tsc.add_points - k.points AS sub_points,
+        add_points,
+        tsc.create_time,
+        tsc.update_time
+        FROM
+        (
+        SELECT
+        id AS spu_id,
+        name AS spu_name,
+        is_on,
+        is_delete
+        FROM
+        tb_spu
+        <where>
+            <if test="condition.keywords != null">
+                name like concat('%',#{condition.keywords},'%')
+            </if>
+        </where>
+        ) p
+        LEFT JOIN tb_shopping_cart tsc ON p.spu_id = tsc.spu_id
+        LEFT JOIN tb_sku k ON k.id = tsc.sku_id
+        LEFT JOIN tb_user_info tui ON tui.id = tsc.user_id
+        <where>
+            tsc.is_delete = 0
+            <if test="condition.status != null">
+                and tsc.add_points - k.points > 0
+            </if>
+        </where>
+        ORDER BY
+        sub_points DESC,
+        COALESCE(tsc.create_time, tsc.update_time) DESC
+        LIMIT #{current},#{size}
+    </select>
+
+    <select id="listShoppingCart" resultMap="shoppingCartResultMap">
+        SELECT
+        tsc.id,
+        p.spu_id,
+        p.spu_name,
+        p.is_on,
+        p.is_delete + k.is_delete AS is_delete,
+        num,
+        sku_id,
+        stock,
+        k.name AS sku_name,
+        k.picture,
+        k.points,
+        tsc.add_points - k.points AS sub_points
+        FROM
+        (
+        SELECT
+        id AS spu_id,
+        name AS spu_name,
+        is_on,
+        is_delete
+        FROM
+        tb_spu
+        <where>
+            <if test="condition.keywords != null">
+                name like concat('%',#{condition.keywords},'%')
+            </if>
+        </where>
+        ) p
+        LEFT JOIN tb_shopping_cart tsc ON p.spu_id = tsc.spu_id
+        LEFT JOIN tb_sku k ON k.id = tsc.sku_id
+        <where>
+            tsc.is_delete = 0
+            and user_id = #{condition.userInfoId}
+            <if test="condition.status != null">
+                and tsc.add_points - k.points > 0
+            </if>
+        </where>
+        ORDER BY
+        sub_points DESC,
+        COALESCE(tsc.create_time, tsc.update_time) DESC
+        LIMIT #{current},#{size}
+    </select>
+
+    <select id="countShoppingCart" resultType="java.lang.Integer">
+        SELECT
+        count(DISTINCT tsc.id)
+        FROM
+        (
+        SELECT
+        id AS spu_id
+        FROM
+        tb_spu
+        <where>
+            <if test="condition.keywords != null">
+                name like concat('%',#{condition.keywords},'%')
+            </if>
+        </where>
+        ) p
+        LEFT JOIN tb_shopping_cart tsc ON p.spu_id = tsc.spu_id
+        LEFT JOIN tb_sku k ON k.id = tsc.sku_id
+        <where>
+            tsc.is_delete = 0
+            <if test="condition.userInfoId != null">
+                and user_id = #{condition.userInfoId}
+            </if>
+            <if test="condition.status != null">
+                and tsc.add_points - k.points > 0
+            </if>
+        </where>
+    </select>
+</mapper>

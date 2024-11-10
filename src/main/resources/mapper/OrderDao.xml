@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.training.dao.OrderDao">
+    <resultMap id="orderResultMap" type="com.example.training.dto.OrderDTO">
+        <id column="id" property="id"/>
+        <result column="order_code" property="orderCode"/>
+        <result column="address_id" property="addressId"/>
+        <result column="total_points" property="totalPoints"/>
+        <result column="status" property="status"/>
+        <result column="freight_ids" property="freightIds"/>
+        <result column="remarks" property="remarks"/>
+        <result column="create_time" property="createTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="user_id" property="userId"/>
+        <association property="userAddressDTO" javaType="com.example.training.dto.UserAddressDTO" resultMap="addressResultMap"/>
+        <collection property="orderItemList" ofType="com.example.training.dto.OrderItemDTO" column="id" select="selectOrderItem"/>
+    </resultMap>
+
+    <resultMap id="addressResultMap" type="com.example.training.dto.UserAddressDTO">
+        <id column="address_id" property="id"/>
+        <result column="receiver_name" property="receiverName"/>
+        <result column="phone" property="phone"/>
+        <result column="postal_code" property="postalCode"/>
+        <result column="region_code" property="regionCode"/>
+        <result column="detail_address" property="detailAddress"/>
+        <result column="is_default" property="isDefault"/>
+        <association property="region" javaType="com.example.training.entity.Region" column="region_code" select="selectRegion"/>
+    </resultMap>
+
+    <select id="selectRegion" resultType="com.example.training.entity.Region">
+        SELECT *
+        FROM tb_region
+        WHERE code = #{region_code}
+    </select>
+
+    <resultMap id="orderItemResultMap" type="com.example.training.dto.OrderItemDTO">
+        <id column="spu_id" property="spuId"/>
+        <result column="spu_name" property="name"/>
+        <result column="picture" property="picture"/>
+        <result column="points" property="points"/>
+        <result column="sku_id" property="skuId"/>
+        <result column="num" property="num"/>
+        <result column="sku_name" property="skuName"/>
+    </resultMap>
+
+    <select id="selectOrderItem" resultType="com.example.training.dto.OrderItemDTO">
+        SELECT
+        toi.spu_id,
+        p.name AS name,
+        k.picture,
+        k.points,
+        k.id AS sku_id,
+        k.name AS sku_name,
+        toi.num
+        FROM tb_order_item toi
+        LEFT JOIN tb_spu p ON toi.spu_id = p.id
+        LEFT JOIN tb_sku k on toi.sku_id = k.id
+        WHERE order_id = #{id}
+    </select>
+
+<!--    <select id="listOrders" resultMap="orderResultMap">-->
+<!--        SELECT-->
+<!--        o.id,-->
+<!--        order_code,-->
+<!--        address_id,-->
+<!--        total_points,-->
+<!--        o.status,-->
+<!--        freight_ids,-->
+<!--        remarks,-->
+<!--        o.create_time,-->
+<!--        o.user_id,-->
+<!--        end_time,-->
+<!--        receiver_name,-->
+<!--        phone,-->
+<!--        postal_code,-->
+<!--        region_code,-->
+<!--        detail_address,-->
+<!--        is_default-->
+<!--        FROM-->
+<!--        (SELECT *-->
+<!--         FROM-->
+<!--         tb_order-->
+<!--        <where>-->
+<!--            <if test="condition.isDelete != null">-->
+<!--                is_delete = #{condition.isDelete}-->
+<!--            </if>-->
+<!--            <if test="condition.orderId != null">-->
+<!--                AND id = #{condition.orderId}-->
+<!--            </if>-->
+<!--            <if test="condition.userInfoId != null">-->
+<!--                AND user_id = #{condition.userInfoId}-->
+<!--            </if>-->
+<!--            <if test="condition.status != null">-->
+<!--                AND status = #{condition.status}-->
+<!--            </if>-->
+<!--        </where>-->
+<!--        ORDER BY-->
+<!--        COALESCE(create_time, end_time) DESC-->
+<!--        LIMIT #{current},#{size}-->
+<!--         ) o-->
+<!--        LEFT JOIN tb_order_item toi ON o.id = toi.order_id-->
+<!--        LEFT JOIN tb_spu p ON toi.spu_id = p.id-->
+<!--        LEFT JOIN tb_user_address tua ON tua.id = o.address_id-->
+<!--        <where>-->
+<!--            <if test="condition.keywords != null">-->
+<!--                p.name like concat('%',#{condition.keywords},'%')-->
+<!--            </if>-->
+<!--        </where>-->
+<!--        ORDER BY-->
+<!--        COALESCE(o.create_time, end_time) DESC-->
+<!--    </select>-->
+
+    <select id="listOrders" resultMap="orderResultMap">
+        SELECT
+        o.id,
+        max(p.id) as pid,
+        order_code,
+        address_id,
+        total_points,
+        o.status,
+        freight_ids,
+        remarks,
+        o.create_time,
+        o.user_id,
+        end_time,
+        receiver_name,
+        phone,
+        postal_code,
+        region_code,
+        detail_address,
+        is_default
+        FROM
+        tb_order o
+        LEFT JOIN tb_order_item toi ON o.id = toi.order_id
+        INNER JOIN
+        (
+        SELECT *
+        FROM
+        tb_spu
+        <where>
+            <if test="condition.keywords != null">
+                name like concat('%',#{condition.keywords},'%')
+        </if>
+        </where>
+        )p ON toi.spu_id = p.id
+        LEFT JOIN tb_user_address tua ON tua.id = o.address_id
+        <where>
+            <if test="condition.isDelete != null">
+                o.is_delete = #{condition.isDelete}
+            </if>
+            <if test="condition.orderId != null">
+                AND o.id = #{condition.orderId}
+            </if>
+            <if test="condition.userInfoId != null">
+                AND user_id = #{condition.userInfoId}
+            </if>
+            <if test="condition.status != null">
+                AND o.status = #{condition.status}
+            </if>
+        </where>
+        group by o.id
+        ORDER BY
+        COALESCE(o.create_time, end_time) DESC
+        LIMIT #{current},#{size}
+    </select>
+
+    <select id="countOrders" resultType="java.lang.Integer">
+        SELECT
+        count(DISTINCT o.id)
+        FROM
+        tb_order o
+        LEFT JOIN tb_order_item toi ON o.id = toi.order_id
+        LEFT JOIN tb_spu p ON toi.spu_id = p.id
+        <where>
+            <if test="condition.isDelete != null">
+                o.is_delete = #{condition.isDelete}
+            </if>
+            <if test="condition.orderId != null">
+                AND o.id = #{condition.orderId}
+            </if>
+            <if test="condition.userInfoId != null">
+                AND o.user_id = #{condition.userInfoId}
+            </if>
+            <if test="condition.keywords != null">
+                AND p.name like concat('%',#{condition.keywords},'%')
+            </if>
+            <if test="condition.status != null">
+                AND o.status = #{condition.status}
+            </if>
+        </where>
+    </select>
+</mapper>

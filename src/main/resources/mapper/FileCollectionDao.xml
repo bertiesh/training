@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.training.dao.FileCollectionDao">
+
+
+    <select id="listFileCollectionBacks" resultType="com.example.training.dto.FileCollectionBackDTO">
+        SELECT
+        pa.id,
+        collection_name,
+        collection_desc,
+        collection_cover,
+        COUNT( a.id ) AS file_count,
+        project_ids,
+        status
+        FROM
+        (
+        SELECT
+        id,
+        collection_name,
+        collection_desc,
+        collection_cover,
+        project_ids,
+        status
+        FROM
+        tb_file_collection
+        WHERE
+        is_delete = 0
+        <if test="condition.keywords != null">
+            and collection_name like concat('%',#{condition.keywords},'%')
+        </if>
+        <if test="condition.type != null">
+            and type = #{condition.type}
+        </if>
+        ORDER BY
+        id desc
+        LIMIT #{current},#{size}
+        ) pa
+        LEFT JOIN
+        (
+        SELECT
+        id,
+        collection_id
+        FROM
+        tb_file
+        WHERE
+        is_delete = 0
+        )
+        a ON pa.id = a.collection_id
+        GROUP BY
+        pa.id
+    </select>
+
+</mapper>

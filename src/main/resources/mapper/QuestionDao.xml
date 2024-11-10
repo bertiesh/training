@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.training.dao.QuestionDao">
+
+    <resultMap id="questionBackResultMap" type="com.example.training.dto.QuestionBackDTO">
+        <id column="id" property="id"/>
+        <result column="question_description" property="questionDescription"/>
+        <result column="user_id" property="userId" />
+        <result column="question_title" property="questionTitle"/>
+        <result column="create_time" property="createTime"/>
+        <result column="type" property="type"/>
+        <result column="images" property="images"/>
+        <result column="is_delete" property="isDelete"/>
+        <result column="status" property="status"/>
+        <result column="questions" property="questions"/>
+        <collection property="tagDTOList" ofType="com.example.training.dto.TagDTO">
+            <id column="tag_id" property="id"/>
+            <result column="tag_name" property="tagName"/>
+        </collection>
+    </resultMap>
+
+    <select id="listQuestionBacks" resultMap="questionBackResultMap">
+        SELECT
+        a.id,
+        user_id,
+        question_title,
+        question_description,
+        images,
+        questions,
+        type,
+        a.is_delete,
+        a.status,
+        a.create_time,
+        t.id AS tag_id,
+        t.tag_name
+        FROM
+        (
+        SELECT
+        id,
+        user_id,
+        question_title,
+        question_description,
+        images,
+        questions,
+        type,
+        is_delete,
+        status,
+        create_time
+        FROM
+        tb_question
+        <where>
+            is_delete = #{condition.isDelete}
+            <if test="condition.keywords != null">
+                and question_title like concat('%',#{condition.keywords},'%')
+            </if>
+            <if test="condition.status != null">
+                and status = #{condition.status}
+            </if>
+            <if test="condition.type != null">
+                and type = #{condition.type}
+            </if>
+            <if test="condition.tagId != null">
+                and id in
+                (
+                SELECT
+                question_id
+                FROM
+                tb_question_tag
+                WHERE
+                tag_id = #{condition.tagId}
+                )
+            </if>
+        </where>
+        ORDER BY
+        id DESC
+        LIMIT #{current},#{size}
+        ) a
+        LEFT JOIN tb_question_tag atg ON a.id = atg.question_id
+        LEFT JOIN tb_tag t ON t.id = atg.tag_id
+        ORDER BY
+        a.id DESC
+    </select>
+
+    <select id="countQuestionBacks" resultType="java.lang.Integer">
+        SELECT
+        count(DISTINCT a.id)
+        from
+        tb_question a
+        LEFT JOIN tb_question_tag tat on  a.id = tat.question_id
+        <where>
+            is_delete = #{condition.isDelete}
+            <if test="condition.keywords != null">
+                and question_title like concat('%',#{condition.keywords},'%')
+            </if>
+            <if test="condition.status != null">
+                and `status` = #{condition.status}
+            </if>
+            <if test="condition.type != null">
+                and type = #{condition.type}
+            </if>
+            <if test="condition.tagId != null">
+                and tat.tag_id = #{condition.tagId}
+            </if>
+        </where>
+    </select>
+
+</mapper>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.training.dao.SPUDao">
+    <resultMap id="spuBackResultMap" type="com.example.training.dto.SPUBackDTO">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="pictures" property="pictures"/>
+        <result column="is_top" property="isTop"/>
+        <result column="is_delete" property="isDelete"/>
+        <result column="is_on" property="isOn"/>
+        <collection property="skuBackDTOList" ofType="com.example.training.dto.SKUBackDTO">
+            <id column="sku_id" property="id"/>
+            <result column="sku_name" property="name"/>
+            <result column="stock" property="stock"/>
+            <result column="picture" property="picture"/>
+            <result column="sort" property="sort"/>
+            <result column="sku_is_delete" property="isDelete"/>
+            <result column="points" property="points"/>
+            <result column="weight" property="weight"/>
+            <result column="price" property="price"/>
+            <result column="cost" property="cost"/>
+            <result column="sales_count" property="salesCount"/>
+        </collection>
+    </resultMap>
+
+    <select id="listSPUBacks" resultMap="spuBackResultMap">
+        SELECT
+        p.id,
+        p.name,
+        description,
+        pictures,
+        is_top,
+        p.is_delete,
+        is_on,
+        k.id AS sku_id,
+        k.name AS sku_name,
+        k.is_delete AS sku_is_delete,
+        k.stock,
+        k.points,
+        k.price,
+        k.cost,
+        k.sort,
+        k.weight,
+        k.picture
+        FROM
+        (
+        SELECT
+        id,
+        name,
+        description,
+        pictures,
+        is_top,
+        is_delete,
+        is_on
+        FROM
+        tb_spu
+        <where>
+            <if test="condition.isDelete !=null">
+                is_delete = #{condition.isDelete}
+            </if>
+            <if test="condition.isOn != null">
+                and is_ON = #{condition.isOn}
+            </if>
+            <if test="condition.keywords != null">
+                and name like concat('%',#{condition.keywords},'%')
+            </if>
+            <if test="condition.spuId != null">
+                and id = #{condition.spuId}
+            </if>
+        </where>
+        ORDER BY
+        is_top DESC,
+        is_on DESC,
+        id DESC
+        LIMIT #{current},#{size}
+        ) p
+        LEFT JOIN tb_sku k ON p.id = k.spu_id
+        LEFT JOIN
+        (
+        SELECT
+        *
+        FROM
+        tb_order_item
+        WHERE
+        is_delete = 0
+        )toi ON k.id = toi.sku_id
+        ORDER BY
+        is_top DESC,
+        is_on DESC,
+        p.id DESC,
+        k.sort DESC
+    </select>
+
+    <select id="countSPUBacks" resultType="java.lang.Integer">
+        SELECT
+        count(DISTINCT id)
+        from
+        tb_spu
+        <where>
+            <if test="condition.isDelete != null">
+                is_delete = #{condition.isDelete}
+            </if>
+            <if test="condition.isOn != null">
+                and is_ON = #{condition.isOn}
+            </if>
+            <if test="condition.keywords != null">
+                and name like concat('%',#{condition.keywords},'%')
+            </if>
+            <if test="condition.spuId != null">
+                and id = #{condition.spuId}
+            </if>
+        </where>
+    </select>
+</mapper>
